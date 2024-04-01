@@ -1,0 +1,10 @@
+
+//@version=5
+indicator("Plots", "", true)
+// longSignal = close > open
+// plot(longSignal ? low - ta.tr : na, "Long", color.blue, 2, plot.style_circles)
+plot(low, "Close", color.rgb(90, 148, 255), 2, plot.style_cross)
+plotchar(high, "Long", "▲", location.abovebar, color = color.lime, size = size.tiny)
+
+bool isRising = ta.rising(volume, 3) 
+plotarrow(close - open,"low",color.lime, color.red)

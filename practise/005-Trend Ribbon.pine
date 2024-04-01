@@ -1,0 +1,66 @@
+//@version=5
+indicator("005-Trend Ribbon", "Trend Ribbon", overlay = true)
+
+maTypeInput = input.string("EMA", "MA Type", ["SMA", "EMA"])
+// maTypeInput = input.string("EMA", title = "MA Type", options = ["SMA", "EMA"])
+
+src = input.source(close, "Source")
+dodger_blue = #1a75ff
+scarlet = #ff1a1a
+
+colorHandler(current, top) =>
+    prevChange = ta.change(current)
+    bgColor = prevChange >= 0 and current > top ? dodger_blue:
+      prevChange < 0 and current > top ? scarlet:
+      prevChange <= 0 and current < top ? scarlet:
+      prevChange >= 0 and current < top ? dodger_blue : dodger_blue
+
+ma(source, length, type)=>
+    switch type
+        "SMA" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+
+ma05 = ma(src, 5, maTypeInput)    
+ma15 = ma(src, 15, maTypeInput)    
+ma25 = ma(src, 25, maTypeInput)    
+ma35 = ma(src, 35, maTypeInput)  
+ma45 = ma(src, 45, maTypeInput)   
+ma55 = ma(src, 55, maTypeInput)   
+ma65 = ma(src, 65, maTypeInput)   
+ma75 = ma(src, 75, maTypeInput)   
+ma85 = ma(src, 85, maTypeInput)   
+ma95 = ma(src, 95, maTypeInput)    
+
+ma10 = ma(src, 10, maTypeInput)    
+ma20 = ma(src, 20, maTypeInput)    
+ma30 = ma(src, 30, maTypeInput)    
+ma40 = ma(src, 40, maTypeInput)    
+ma50 = ma(src, 50, maTypeInput)    
+ma60 = ma(src, 60, maTypeInput)    
+ma70 = ma(src, 70, maTypeInput)    
+ma80 = ma(src, 80, maTypeInput)    
+ma90 = ma(src, 90, maTypeInput)    
+ma100 = ma(src, 100, maTypeInput)
+
+top = ma100
+lStyle = plot.style_line
+plot(ma05, color = colorHandler(ma05, top), style= lStyle, linewidth = 3)
+plot(ma15, color = colorHandler(ma15, top), style= lStyle, linewidth = 1)
+plot(ma25, color = colorHandler(ma25, top), style= lStyle, linewidth = 1)
+plot(ma35, color = colorHandler(ma35, top), style= lStyle, linewidth = 1)
+plot(ma45, color = colorHandler(ma45, top), style= lStyle, linewidth = 1)
+plot(ma55, color = colorHandler(ma55, top), style= lStyle, linewidth = 1)
+plot(ma65, color = colorHandler(ma65, top), style= lStyle, linewidth = 1)
+plot(ma75, color = colorHandler(ma75, top), style= lStyle, linewidth = 1)
+plot(ma85, color = colorHandler(ma85, top), style= lStyle, linewidth = 1)
+plot(ma95, color = colorHandler(ma95, top), style= lStyle, linewidth = 1)
+
+plot(ma10, color = colorHandler(ma10, top), style= lStyle, linewidth = 1)
+plot(ma20, color = colorHandler(ma20, top), style= lStyle, linewidth = 1)
+plot(ma30, color = colorHandler(ma30, top), style= lStyle, linewidth = 1)
+plot(ma40, color = colorHandler(ma40, top), style= lStyle, linewidth = 1)
+plot(ma50, color = colorHandler(ma50, top), style= lStyle, linewidth = 1)
+plot(ma60, color = colorHandler(ma60, top), style= lStyle, linewidth = 1)
+plot(ma70, color = colorHandler(ma70, top), style= lStyle, linewidth = 1)
+plot(ma80, color = colorHandler(ma80, top), style= lStyle, linewidth = 1)
+plot(ma90, color = colorHandler(ma90, top), style= lStyle, linewidth = 3)

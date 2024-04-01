@@ -1,0 +1,10 @@
+//@version=5
+indicator(title="Comparison Operator", shorttitle="Comp Op", overlay=true)
+
+isBlackA = high < high[1] and low < low[1] and close < open
+isBlackB = high[1] < high[2] and low[1] < low[2] and close[1] < open[1]
+isBlackC = high[2] < high[3] and low[2] < low[3] and close[2] < open[2]
+
+isBlackCrow = isBlackA and isBlackB and isBlackC
+
+barcolor(isBlackCrow ? color.yellow : na)

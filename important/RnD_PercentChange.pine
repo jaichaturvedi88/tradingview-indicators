@@ -1,0 +1,16 @@
+//@version=5
+indicator("RnD_PercentChange >5,8 & < -5,-8", overlay=true)
+
+bullColor_5_Percent = color.new(color.blue, 0)
+bullColor_8_Percent = color.new(color.aqua, 0)
+bearColor_5_Percent = color.new(color.fuchsia, 0)
+bearColor_8_Percent = color.new(color.maroon, 0)
+
+percentageChange = ((close/close[1])-1)*100
+log.info("close: {0} \n prev close: {1} \npercentageChange: {2}", close, close[1], percentageChange)
+
+plotshape(percentageChange > 5, ">5%", shape.xcross, location.abovebar, bullColor_5_Percent,0, ">5%", bullColor_5_Percent)
+plotshape(percentageChange > 8, ">5%", shape.xcross, location.abovebar, bullColor_8_Percent,0, ">8%", bullColor_8_Percent)
+
+plotshape(percentageChange < -5, "<5%", shape.xcross, location.belowbar, bearColor_5_Percent,0, "<5%", bearColor_5_Percent)
+plotshape(percentageChange < -8, "<5%", shape.xcross, location.belowbar, bearColor_8_Percent,0, "<8%", bearColor_8_Percent)

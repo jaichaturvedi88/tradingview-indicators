@@ -1,0 +1,24 @@
+//@version=5
+indicator("Multi plot indicator", overlay=false)
+
+//DESC:- 1.GapUp/GapDown 2.Today's Max Point(H-L) 3. Today's Change pt(C-O)
+
+// Calculate the difference between high and low
+highLowDifference = high - low
+
+// Plot the high-low difference as a histogram with a separate scale
+// plot(highLowDifference, color=color.new(color.blue, 50) , style=plot.style_histogram , title="High-Low Difference Histogram")
+plot(highLowDifference, color=color.new(#880e4f, 0) , style=plot.style_stepline, title="High-Low Difference")
+
+// Plot the absolute open-close difference
+openCloseDifference = close > open ? close - open : open - close
+// plot(openCloseDifference,  color= color.new(color.blue, 50) , style=plot.style_columns, title="Open-Close Difference")
+plot(openCloseDifference,  color= close > open ? color.new(color.green, 50) : color.new(color.red, 50) , style=plot.style_columns, title="Open-Close Difference")
+
+
+
+bool isGapUp = high[1] < open  
+bool isGapDown = low[1] > open 
+
+plotshape(isGapUp, "Gap Up", shape.arrowup, location.top, color.rgb(0, 140, 255))
+plotshape(isGapDown, "Gap Down", shape.arrowdown, location.top, color.rgb(221, 44, 183))

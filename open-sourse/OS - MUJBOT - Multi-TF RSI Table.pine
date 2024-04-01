@@ -1,0 +1,218 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © JohnyCardano
+
+//@version=5
+indicator("MUJBOT - Multi-TF RSI Table", overlay=true)
+
+// User inputs
+rsiLengthInput = input.int(14, minval=1, title="Délka RSI")
+maLengthInput = input.int(14, title="Délka MA")
+showTableInput = input.bool(true, title="Zobrazit tabulku RSI & MA")
+tablePositionInput = input.string("Bottom right", title="Table Position", options=["Top left", "Top right", "Bottom left", "Bottom right", "Middle left", "Middle right"])
+maTypeInput = input.string("SMA", title="MA Type", options=["SMA", "Bollinger Bands", "EMA", "SMMA (RMA)", "WMA", "VWMA"], group="MA Settings")
+rsiSourceInput = input.source(close, "Source", group="RSI Settings")
+
+// User input for table size
+string SIZE_LARGE = "Big"
+string SIZE_NORMAL = "Normal"
+string SIZE_SMALL = "Small"
+tableSizeInput = input.string(SIZE_SMALL, "Table size", options=[SIZE_SMALL, SIZE_NORMAL, SIZE_LARGE])
+
+// Function to determine size
+getSize(size) =>
+    size == SIZE_SMALL ? size.small : size == SIZE_LARGE ? size.large : size.normal
+
+// Determine the table text size based on the user's input
+var textSize = getSize(tableSizeInput)
+
+
+ma(source, length, type) =>
+    switch type
+        "SMA" => ta.sma(source, length)
+        "Bollinger Bands" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+        "SMMA (RMA)" => ta.rma(source, length)
+        "WMA" => ta.wma(source, length)
+        "VWMA" => ta.vwma(source, length)
+
+up = ta.rma(math.max(ta.change(rsiSourceInput), 0), rsiLengthInput)
+down = ta.rma(-math.min(ta.change(rsiSourceInput), 0), rsiLengthInput)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+rsiMA = ma(rsi, maLengthInput, maTypeInput)
+isBB = maTypeInput == "Bollinger Bands"
+
+oscSrc = input.source(close, "Source", inline='A', group = "Oscillator")
+oscLen = input.int(14, minval = 1, title = "Length", inline='A', group = "Oscillator")
+plotBull = input(title = 'Bullish', defval = true, inline = "A", group = "Divergence Plots")
+plotBear = input(title = 'Bearish', defval = true, inline = "A", group = "Divergence Plots")
+plotHiddenBull = input(title = 'Hidden Bull',  defval = true, inline = "B", group = "Divergence Plots")
+plotHiddenBear = input(title = 'Hidden Bear', defval = true, inline = "B", group = "Divergence Plots")
+lbR = 5
+lbL = 5
+rangeUpper = 60
+rangeLower = 5//}
+osc = ta.rsi(oscSrc,oscLen)
+oscMA = ma(osc, maLengthInput, maTypeInput)
+
+_inRange(cond) =>
+    bars = ta.barssince(cond == true)
+    rangeLower <= bars and bars <= rangeUpper
+
+// TREND ID{
+plFound = na(ta.pivotlow(osc, lbL, lbR)) ? false : true
+phFound = na(ta.pivothigh(osc, lbL, lbR)) ? false : true
+oscHL = osc[lbR] > ta.valuewhen(plFound, osc[lbR], 1) and _inRange(plFound[1])
+oscLL = osc[lbR] < ta.valuewhen(plFound, osc[lbR], 1) and _inRange(plFound[1])
+oscHH = osc[lbR] > ta.valuewhen(phFound, osc[lbR], 1) and _inRange(phFound[1])
+oscLH = osc[lbR] < ta.valuewhen(phFound, osc[lbR], 1) and _inRange(phFound[1])
+priceLL = low[lbR] < ta.valuewhen(plFound, low[lbR], 1)
+priceHL = low[lbR] > ta.valuewhen(plFound, low[lbR], 1)
+priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
+priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
+bullCond = plotBull and priceLL and oscHL and plFound
+hiddenBullCond = plotHiddenBull and priceHL and oscLL and plFound
+bearCond = plotBear and priceHH and oscLH and phFound
+hiddenBearCond = plotHiddenBear and priceLH and oscHH and phFound//} 
+
+// COLORS {
+bearColor = color.rgb(255, 0, 0)
+bullColor = color.rgb(0, 255, 8)
+hiddenBullColor = color.new(color.green, 0)
+hiddenBearColor = color.new(color.red, 0)
+textColor = color.white
+noneColor = color.new(color.white, 100)//}
+
+
+// Setting table position
+tablePosition = position.bottom_right
+if tablePositionInput == "Top left"
+    tablePosition := position.top_left
+else if tablePositionInput == "Top right"
+    tablePosition := position.top_right
+else if tablePositionInput == "Bottom left"
+    tablePosition := position.bottom_left
+else if tablePositionInput == "Bottom right"
+    tablePosition := position.bottom_right
+else if tablePositionInput == "Middle left"
+    tablePosition := position.middle_left
+else if tablePositionInput == "Middle right"
+    tablePosition := position.middle_right
+
+// Function to Retrieve RSI and RSI Moving Average
+getRsi(src, length, tf) => request.security(syminfo.tickerid, tf, ta.rsi(src, length))
+getRsiMa(src, length, tf) => request.security(syminfo.tickerid, tf, ta.sma(ta.rsi(src, length), length))
+
+// Function to determine trend and sentiment
+determineTrendAndSentiment(rsi, rsiMA) =>
+    float[] rsiValues = array.new_float(size=5)
+    if bar_index >= 4 // Ensures at least 5 candles are present
+        array.set(rsiValues, 0, rsi[4])
+        array.set(rsiValues, 1, rsi[3])
+        array.set(rsiValues, 2, rsi[2])
+        array.set(rsiValues, 3, rsi[1])
+        array.set(rsiValues, 4, rsi)
+    avgRsi = array.avg(rsiValues)
+    trend = avgRsi > rsiMA ? "Rising" : avgRsi < rsiMA ? "Falling" : "Neutral"
+    sentiment = "Neutral"
+    if rsi > rsiMA and trend == "Rising"
+        sentiment := "Bullish"
+    else if rsi < rsiMA and trend == "Falling"
+        sentiment := "Bearish"
+    [trend, sentiment]
+
+// Calculating Current RSI and MA Values
+current_rsi = ta.rsi(close, rsiLengthInput)
+current_ma = ta.sma(current_rsi, maLengthInput)
+
+// Retrieving RSI and MA Values for Different Timeframes
+rsi_1m = getRsi(close, rsiLengthInput, "1")
+ma_1m = getRsiMa(close, rsiLengthInput, "1")
+rsi_5m = getRsi(close, rsiLengthInput, "5")
+ma_5m = getRsiMa(close, rsiLengthInput, "5")
+rsi_15m = getRsi(close, rsiLengthInput, "15")
+ma_15m = getRsiMa(close, rsiLengthInput, "15")
+rsi_1h = getRsi(close, rsiLengthInput, "60")
+ma_1h = getRsiMa(close, rsiLengthInput, "60")
+rsi_4h = getRsi(close, rsiLengthInput, "240")
+ma_4h = getRsiMa(close, rsiLengthInput, "240")
+rsi_1D = getRsi(close, rsiLengthInput, "D")
+ma_1D = getRsiMa(close, rsiLengthInput, "D")
+
+// Determining Trend and Sentiment for All Timeframes
+[trend_1m, sentiment_1m] = determineTrendAndSentiment(rsi_1m, ma_1m)
+[trend_5m, sentiment_5m] = determineTrendAndSentiment(rsi_5m, ma_5m)
+[trend_15m, sentiment_15m] = determineTrendAndSentiment(rsi_15m, ma_15m)
+[trend_1h, sentiment_1h] = determineTrendAndSentiment(rsi_1h, ma_1h)
+[trend_4h, sentiment_4h] = determineTrendAndSentiment(rsi_4h, ma_4h)
+[trend_1D, sentiment_1D] = determineTrendAndSentiment(rsi_1D, ma_1D)
+[trend_current, sentiment_current] = determineTrendAndSentiment(current_rsi, current_ma)
+
+getColorForTrendAndSentiment(trend, sentiment) =>
+    trend == "Rising" and sentiment == "Bullish" ? color.green : trend == "Falling" and sentiment == "Bearish" ? color.red : color.rgb(0, 0, 0)
+
+// Initializing the InfoTable
+var table infoTable = table.new(tablePosition, 5, 9, bgcolor = color.rgb(0, 0, 0), border_width = 1)
+table.cell(infoTable, 0, 0, "TF", text_color = color.white, text_size=textSize)
+table.cell(infoTable, 1, 0, "RSI", text_color = color.white, text_size=textSize)
+table.cell(infoTable, 2, 0, "MA", text_color = color.white, text_size=textSize)
+table.cell(infoTable, 3, 0, "Trend", text_color = color.white, text_size=textSize)
+table.cell(infoTable, 4, 0, "Sentiment", text_color = color.white, text_size=textSize)
+
+// Function to Add a Row to the Table
+addTableRow(row, timeframe, rsi, ma, trend, sentiment) =>
+    trendColor = getColorForTrendAndSentiment(trend, sentiment)
+
+    // Determine the color based on the RSI value
+    var color rsiColor = color.rgb(120, 123, 134, 0) // Default color for neutral zone
+    if rsi <= 30
+        rsiColor := rsi <= 10 ? color.new(color.green, 20) : rsi <= 20 ? color.green : color.new(color.green, 80)
+    else if rsi >= 70
+        rsiColor := rsi >= 90 ? color.new(color.red, 20) : rsi >= 80 ? color.red : color.new(color.red, 80)
+    else
+        rsiColor := color.rgb(0, 0, 0) // Set the color to gray for neutral RSI values
+
+
+    table.cell(infoTable, 0, row, timeframe, bgcolor=rsiColor, text_color=color.white, text_size=textSize)
+    table.cell(infoTable, 1, row, str.format("{0,number,#.#}", rsi), text_color=color.white, text_size=textSize)
+    table.cell(infoTable, 2, row, str.format("{0,number,#.#}", ma), text_color=color.white, text_size=textSize)
+    table.cell(infoTable, 3, row, trend, bgcolor=trendColor, text_color = color.white, text_size=textSize)
+    table.cell(infoTable, 4, row, sentiment, bgcolor=trendColor, text_color = color.white, text_size=textSize)
+
+
+// Funkce pro přidání řádku s divergencí
+addDivergenceRow(row, bullCond, hiddenBullCond, bearCond, hiddenBearCond) =>
+    var color bgColor = color.new(color.gray, 90) // Nastavte výchozí barvu
+    var string divergenceText = "No Divergence"
+    if bullCond
+        divergenceText := "R Bull"
+        bgColor := color.green // Barva pro Bullish divergence
+    else if hiddenBullCond
+        divergenceText := "H Bull"
+        bgColor := color.new(color.green, 50) // Světlejší zelená pro Hidden Bullish
+    else if bearCond
+        divergenceText := "R Bear"
+        bgColor := color.red // Barva pro Bearish divergence
+    else if hiddenBearCond
+        divergenceText := "H Bear"
+        bgColor := color.new(color.red, 50) // Světlejší červená pro Hidden Bearish
+    
+    table.cell(infoTable, 0, row, "Current", text_color=color.white, text_size=textSize)
+    table.cell(infoTable, 1, row, "Diver", text_color=color.white, text_size=textSize)
+    table.cell(infoTable, 2, row, "gence", text_color=color.white, text_size=textSize)
+    table.cell(infoTable, 3, row, "")
+    table.cell(infoTable, 4, row, divergenceText, text_color=color.white, text_size=textSize, bgcolor=bgColor)
+
+// Výpočet divergencí pro aktuální časový rámec
+current_divergence = bullCond ? "Bullish" : hiddenBullCond ? "Hidden Bull" : bearCond ? "Bearish" : hiddenBearCond ? "Hidden Bear" : "None"
+
+// Adding Data to the Table
+if showTableInput
+    addTableRow(1, "1m", rsi_1m, ma_1m, trend_1m, sentiment_1m)
+    addTableRow(2, "5m", rsi_5m, ma_5m, trend_5m, sentiment_5m)
+    addTableRow(3, "15m", rsi_15m, ma_15m, trend_15m, sentiment_15m)
+    addTableRow(4, "1h", rsi_1h, ma_1h, trend_1h, sentiment_1h)
+    addTableRow(5, "4h", rsi_4h, ma_4h, trend_4h, sentiment_4h)
+    addTableRow(6, "1D", rsi_1D, ma_1D, trend_1D, sentiment_1D)
+    addTableRow(7, "Current", current_rsi, current_ma, trend_current, sentiment_current)
+    addDivergenceRow(8, bullCond, hiddenBullCond, bearCond, hiddenBearCond)
+    
